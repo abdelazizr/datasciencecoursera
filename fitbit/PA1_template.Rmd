@@ -1,0 +1,158 @@
+---
+title: "Fitbit Activity Monitoring"
+output: html_document
+---
+
+## Introduction
+
+It is now possible to collect a large amount of data about personal movement using activity monitoring devices such as a Fitbit, Nike Fuelband, or Jawbone Up. These type of devices are part of the "quantified self" movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. But these data remain under-utilized both because the raw data are hard to obtain and there is a lack of statistical methods and software for processing and interpreting the data.
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+## Data
+
+The data for this assignment can be downloaded from the course web site.
+
+The variables included in this dataset are:
+
+steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+date: The date on which the measurement was taken in YYYY-MM-DD format
+interval: Identifier for the 5-minute interval in which measurement was taken
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+
+# Loading the data for processing
+
+```{r}
+echo = TRUE
+data <- read.csv("C:/Users/asereme/Desktop/Coursera/data/fitbit/activity.csv", header = T, sep = ",")
+#summary(data)
+```
+
+# What is mean total number of steps taken per day?
+### The total number of steps per day is:
+```{r}
+echo = TRUE
+sum_of_steps <- tapply(data$steps, data$date, sum, na.rm=T)
+```
+
+### Here is the histogram of the number of steps taken per day
+
+```{r}
+echo = TRUE
+hist(sum_of_steps, xlab = "sum of steps per day", main = "Histogram of # steps per day")
+```
+
+### The mean of the total number of steps taken per day
+```{r}
+echo = TRUE
+steps_mean <- round(mean(sum_of_steps))
+
+print(c("The mean is",steps_mean))
+
+```
+
+### The median of the total number of steps
+```{r}
+echo = TRUE
+steps_median <- round(median(sum_of_steps))
+
+print(c("The median is",steps_median))
+```
+
+# What is the average daily activity pattern?
+
+### Time series plot of the 5-minute interval
+
+```{r}
+echo = TRUE
+interval <- tapply(data$steps, data$interval, mean, na.rm=T)
+plot(interval ~ unique(data$interval), type="l", xlab = "5-min interval")
+```
+
+#### Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r}
+echo = TRUE
+interval[which.max(interval)]
+```
+
+# Inputting Missing values
+
+### Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+```{r}
+echo = TRUE
+table(is.na(data) == TRUE)
+summary(data)
+```
+
+### Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+The 'interval' contains the mean for each single interval The value coming from 'interval' will replace the NA.
+```{r}
+echo = TRUE
+clean_data <- data  # creation of the dataset that will have no more NAs
+for (i in 1:nrow(data)){
+    if(is.na(data$steps[i])){
+        clean_data$steps[i]<- interval[[as.character(data[i, "interval"])]]
+    }
+}
+```
+### Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day
+```{r}
+echo = TRUE
+sum_of_steps2 <- tapply(clean_data$steps, clean_data$date, sum, na.rm=T)
+hist(sum_of_steps2, xlab = "Sum of steps/day", main = "Histogram of steps/day")
+```
+Mean and median calculation
+```{r}
+steps_mean2<- round(mean(sum_of_steps2))
+steps_median2 <- round(median(sum_of_steps2))
+print(c("The mean is",steps_mean2))
+
+print(c("The median is",steps_median2))
+```
+
+# Are there differences in activity patterns between weekdays and weekends?
+### Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+```{r}
+echo = TRUE
+clean_data$weekday <- c("weekday")
+clean_data[weekdays(as.Date(clean_data[, 2])) %in% c("Saturday", "Sunday", "samedi", "dimanche", "saturday", "sunday", "Samedi", "Dimanche"), ][4] <- c("weekend")
+table(clean_data$weekday == "weekend")
+clean_data$weekday <- factor(clean_data$weekday)
+```
+
+Create a new dataframe for visualization
+
+```{r}
+echo = TRUE
+weekend_data <- subset(clean_data, clean_data$weekday == "weekend")
+weekday_data <- subset(clean_data, clean_data$weekday == "weekday")
+
+weekday_mean <- tapply(weekday_data$steps, weekday_data$interval, mean)
+weekend_mean <- tapply(weekend_data$steps, weekend_data$interval, mean)
+
+```
+
+plot!!
+
+```{r}
+echo = TRUE
+library(lattice)
+df_weekday <- NULL
+df_weekend <- NULL
+df_final <- NULL
+
+df_weekday <- data.frame(interval = unique(weekday_data$interval), avg = as.numeric(weekday_mean), day = rep("weekday", length(weekday_mean)))
+
+df_weekend <- data.frame(interval = unique(weekend_data$interval), avg = as.numeric(weekend_mean), day = rep("weekend", length(weekend_mean)))
+df_final <- rbind(df_weekday, df_weekend)
+
+xyplot(avg ~ interval | day, data = df_final, layout = c(1, 2), 
+       type = "l", ylab = "Number of steps")
+
+```
+
+
+
